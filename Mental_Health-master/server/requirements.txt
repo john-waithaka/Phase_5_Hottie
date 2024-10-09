@@ -1,0 +1,13 @@
+ - Flask
+ - Flask-SQLAlchemy
+ - Flask-Bcrypt
+ - Flask-JWT - Extended for token-based authentication
+ - Flask-migrate sqlalchemy
+
+
+
+ code 
+ 1. extensions.py
+ 2. app.py
+ 3. user.py
+ 4. models - but not conclusive
