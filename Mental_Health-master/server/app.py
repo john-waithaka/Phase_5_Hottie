@@ -106,8 +106,16 @@ def create_app():
     app.register_blueprint(auth_bp)  # Register the auth blueprint
     app.register_blueprint(treatment_bp)  # Register the treatment blueprint
     
+    #added just to register working routes
+    for rule in app.url_map.iter_rules():
+        print(rule)
+
 
     return app
+
+
+
+
 
 if __name__ == '__main__':
     app = create_app()

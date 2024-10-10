@@ -13,3 +13,11 @@
  Consider using a library like marshmallow to validate user input and ensure data integrity before saving it to the database.
 
  - please ensure to save your login token to use in the treatment endpoint
+
+
+ errors sumbua
+
+ app.py added 
+ #added just to register working routes
+for rule in app.url_map.iter_rules():
+    print(rule)
