@@ -13,66 +13,193 @@ from models.user import User
 
 treatment_bp = Blueprint('treatment', __name__)
 
+# # Create a new treatment
+# @treatment_bp.route('/treatments', methods=['POST'])
+# @jwt_required()
+# def create_treatment():
+    
+#     #added code therapist sumbua error
+#     therapist_id = get_jwt_identity()
+#     print(f"Therapist ID from JWT: {therapist_id}")
+    
+#     therapist = User.query.get_or_404(therapist_id)
+#     print(f"Therapist user type: {therapist.user_type}")
+#     print(f"Therapist full details: {therapist.__dict__}")
+    
+    
+#     data = request.get_json()
+#     treatment_name = data.get('treatment_name')
+#     description = data.get('description')
+#     start_date = data.get('start_date')
+#     patient_id = data.get('patient_id')
+    
+#     print(f"Received data: {data}")
+
+
+#     # Get the therapist ID from the currently logged-in user
+#     therapist_id = get_jwt_identity()
+
+#     if not treatment_name or not patient_id or not therapist_id:
+#         return jsonify({"message": "Treatment name, patient, and therapist are required."}), 400
+
+#     # Verify that the current user is a therapist
+#     therapist = User.query.get_or_404(therapist_id)
+#     if therapist.user_type != 'Therapist':
+#         return jsonify({"message": "Only therapists can create treatments"}), 403
+
+#     # Verify that the patient exists and is a patient
+#     patient = User.query.get_or_404(patient_id)
+#     if patient.user_type != 'Patient':
+#         return jsonify({"message": "Invalid patient ID"}), 400
+    
+    
+#     #NEW
+#     #added patient query - sumbua error
+#     patient = User.query.get_or_404(patient_id)
+#     print(f"Patient query result: {patient.__dict__}")
+
+
+#     new_treatment = Treatment(
+#         treatment_name=treatment_name,
+#         description=description,
+#         patient_id=patient_id,
+#         therapist_id=therapist_id,
+#         start_date=start_date
+#     )
+
+#     db.session.add(new_treatment)
+#     db.session.commit()
+
+#     return jsonify({"message": "Treatment created successfully", "treatment": new_treatment.id}), 201
+
+
 # Create a new treatment
 @treatment_bp.route('/treatments', methods=['POST'])
 @jwt_required()
 def create_treatment():
-    
-    #added code therapist sumbua error
-    therapist_id = get_jwt_identity()
-    print(f"Therapist ID from JWT: {therapist_id}")
-    
-    therapist = User.query.get_or_404(therapist_id)
-    print(f"Therapist user type: {therapist.user_type}")
-    print(f"Therapist full details: {therapist.__dict__}")
-    
-    
-    data = request.get_json()
-    treatment_name = data.get('treatment_name')
-    description = data.get('description')
-    start_date = data.get('start_date')
-    patient_id = data.get('patient_id')
-    
-    print(f"Received data: {data}")
+    try:
+        # Get therapist ID from JWT
+        therapist_id = get_jwt_identity()
+        print(f"Therapist ID from JWT: {therapist_id}")
 
+        # Ensure therapist exists
+        therapist = User.query.get(therapist_id)
+        if not therapist:
+            return jsonify({
+                "error": {
+                    "code": 404,
+                    "message": "Therapist not found."
+                }
+            }), 404
 
-    # Get the therapist ID from the currently logged-in user
-    therapist_id = get_jwt_identity()
+        # Check if the user is indeed a therapist
+        if therapist.user_type != 'Therapist':
+            return jsonify({
+                "error": {
+                    "code": 403,
+                    "message": "Unauthorized: Only therapists can create treatments."
+                }
+            }), 403
 
-    if not treatment_name or not patient_id or not therapist_id:
-        return jsonify({"message": "Treatment name, patient, and therapist are required."}), 400
+        # Get request data
+        data = request.get_json()
+        print(f"Received data: {data}")
 
-    # Verify that the current user is a therapist
-    therapist = User.query.get_or_404(therapist_id)
-    if therapist.user_type != 'Therapist':
-        return jsonify({"message": "Only therapists can create treatments"}), 403
+        # Extract fields from the request
+        treatment_name = data.get('treatment_name')
+        description = data.get('description')
+        start_date = data.get('start_date')
+        patient_id = data.get('patient_id')
 
-    # Verify that the patient exists and is a patient
-    patient = User.query.get_or_404(patient_id)
-    if patient.user_type != 'Patient':
-        return jsonify({"message": "Invalid patient ID"}), 400
-    
-    
-    #NEW
-    #added patient query - sumbua error
-    patient = User.query.get_or_404(patient_id)
-    print(f"Patient query result: {patient.__dict__}")
+        # Validate required fields
+        if not treatment_name or not description or not patient_id:
+            return jsonify({
+                "error": {
+                    "code": 400,
+                    "message": "Missing required fields: treatment_name, description, and patient_id."
+                }
+            }), 400
 
+        # Ensure the patient exists
+        patient = User.query.get(patient_id)
+        if not patient:
+            return jsonify({
+                "error": {
+                    "code": 404,
+                    "message": f"Patient with ID {patient_id} not found."
+                }
+            }), 404
 
-    new_treatment = Treatment(
-        treatment_name=treatment_name,
-        description=description,
-        patient_id=patient_id,
-        therapist_id=therapist_id,
-        start_date=start_date
-    )
+        # Ensure the patient is of the correct user type
+        if patient.user_type != 'Patient':
+            return jsonify({
+                "error": {
+                    "code": 400,
+                    "message": f"User with ID {patient_id} is not a patient."
+                }
+            }), 400
 
-    db.session.add(new_treatment)
-    db.session.commit()
+        # Validate the start_date (if provided)
+        if start_date:
+            try:
+                # Assume start_date is in ISO 8601 format, convert to date
+                datetime.strptime(start_date, '%Y-%m-%d')
+            except ValueError:
+                return jsonify({
+                    "error": {
+                        "code": 400,
+                        "message": "Invalid start_date format. Expected YYYY-MM-DD."
+                    }
+                }), 400
 
-    return jsonify({"message": "Treatment created successfully", "treatment": new_treatment.id}), 201
+        # Create the new treatment
+        new_treatment = Treatment(
+            treatment_name=treatment_name,
+            description=description,
+            patient_id=patient_id,
+            therapist_id=therapist_id,
+            start_date=start_date
+        )
 
+        # Add and commit to the database
+        db.session.add(new_treatment)
+        db.session.commit()
 
+        return jsonify({
+            "message": "Treatment created successfully",
+            "treatment": {
+                "id": new_treatment.id,
+                "treatment_name": new_treatment.treatment_name,
+                "description": new_treatment.description,
+                "patient_id": new_treatment.patient_id,
+                "therapist_id": new_treatment.therapist_id,
+                "start_date": new_treatment.start_date,
+                "is_active": new_treatment.is_active
+            }
+        }), 201
+
+    except SQLAlchemyError as e:
+        # Handle database errors
+        db.session.rollback()  # Rollback in case of an error
+        print(f"Database error: {str(e)}")
+        return jsonify({
+            "error": {
+                "code": 500,
+                "message": "A database error occurred while creating the treatment.",
+                "details": str(e)
+            }
+        }), 500
+
+    except Exception as e:
+        # Handle all other unforeseen errors
+        print(f"Unexpected error: {str(e)}")
+        return jsonify({
+            "error": {
+                "code": 500,
+                "message": "An unexpected error occurred.",
+                "details": str(e)
+            }
+        }), 500
 
 
 
